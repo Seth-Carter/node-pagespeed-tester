@@ -1,5 +1,6 @@
 const axios = require('axios').default;
 const ora = require('ora');
+require('dotenv').config();
 
 const array = []
 const testUrl = 'https://www.next.co.uk'
@@ -14,11 +15,11 @@ async function httpRequest(UrlArray) {
 
     try {
       const strategy = 'mobile'
-      const key = 'AIzaSyBLh9Bv8MCorLSnhZiyEE4mfiWkcj5yRu0'
+      const key = process.env.API_KEY
       let serviceUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${UrlArray[i]}&strategy=${strategy}&key=${key}`
       
-      const response = await axios.get(serviceUrl);
-      const content = response.data;
+      const response = await axios.get(serviceUrl)
+      const content = response.data
       
       var score = content["lighthouseResult"]["categories"]["performance"]["score"];
       var largestcontentfulpaint = content["lighthouseResult"]["audits"]["largest-contentful-paint"]["displayValue"].slice(0, -2);
@@ -38,7 +39,7 @@ async function httpRequest(UrlArray) {
     } 
   }
   spinner.stop();
-  
+
   console.log(array);
 }
 
