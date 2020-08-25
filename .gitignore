@@ -1,1 +1,4 @@
 .env
+service_account.json
+node_modules
+.eslintrc.json
