@@ -23,6 +23,26 @@ jwt.authorize(function (err, tokens) {
 });
 
 
+function getSheetDataAsync(sheetRange, arrayType) {
+  return new Promise( (resolve, reject) => {
+    sheets.spreadsheets.values.get({
+      auth: jwt,
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: sheetRange
+    },  (err, response) => {
+      if (err) {
+        console.log('The API returned an error: ' + err);
+        reject(err)
+      } else {
+        let sheetValues = response.data.values
+        arrayType.push(sheetValues)
+        console.log(arrayType[0])
+        resolve(response)
+       }
+    })
+  })
+}
+
 function getSheetData(sheetRange, arrayType) {
   sheets.spreadsheets.values.get({
     auth: jwt,
@@ -39,14 +59,6 @@ function getSheetData(sheetRange, arrayType) {
   })
 }
 
-const urlRange = 'Config!A13:B'
-const competitorRange = 'Config!D13:E'
-
-const urlArray = []
-const competitorArray = []
-
-getSheetData(urlRange, urlArray)
-getSheetData(competitorRange, competitorArray)
 
 //For the device type arg, input 'mobile' or 'desktop'
 async function testPageSpeed(testArray, outputArray, deviceType) {
@@ -97,18 +109,64 @@ async function testPageSpeed(testArray, outputArray, deviceType) {
       var serverresponsetime = "An error occured";
       var cumulativelayoutshift = "An error occured";
       var speedindex = "An error occured";
-
+      
       var currentDate = new Date().toJSON().slice(0, 10).replace(/-/g, '/');
       
       outputArray.push([testArray[0][i][0], field, score, timetointeractive, largestcontentfulpaint, firstcontentfulpaint, firstmeaningfulpaint, cumulativelayoutshift, serverresponsetime, speedindex, currentDate, "error"]);
     } 
   }
   spinner.stop();
-
+  
   console.log(outputArray);
 }
 
-const mobileData = []
-const desktopData = []
-const competitorData = []
-// testPageSpeed(urlArray);
+//Upload data to a corresponding sheet tab
+//'inputData' is where you plug in the array returned by the 'testPageSpeed' function.
+//'outputRange' is a string that is the name of the tab within the spreadsheet that
+//was set up to store the page speed data.
+
+function uploadSpeedData (inputData,outputRange) {
+  return new Promise((resolve, reject) => {
+    sheets.spreadsheets.values.append({
+      auth:jwt,
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: outputRange,
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      resource: {
+        values: inputData
+      }
+    }, (err, response) => {
+      if (err) {
+        console.log ('Append failed!: ' + err)
+        reject(err)
+      } else {
+        console.log('Success!: ' + response)
+        resolve(response)
+      }
+    })
+  })
+}
+
+
+
+const urlRange = 'Config!A13:B'
+const competitorRange = 'Config!D13:E'
+
+
+
+async function run() {
+  const urlArray = []
+  const competitorArray = []
+  await getSheetDataAsync(urlRange,urlArray)
+  const mobileData = []
+  const desktopData = []
+  const competitorData = []
+  await testPageSpeed(urlArray, mobileData, 'mobile')
+  await uploadSpeedData(mobileData,'Mobile')
+}
+// getSheetData(competitorRange, competitorArray)
+
+
+
+run()
